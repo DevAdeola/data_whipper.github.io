@@ -188,13 +188,15 @@
   opacity: 0; animation: rise 0.6s 1s forwards;
 }
     .stat-pill {
-      background: var(--bg);
-      border: 1.5px solid var(--border);
-      border-radius: 16px;
-      padding: 1rem 1.5rem;
-      text-align: center;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-    }
+		background: var(--bg);
+		border: 1.5px solid var(--border);
+		border-radius: 16px;
+		padding: 1rem 0;
+		text-align: center;
+		box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+		width: 130px;
+		flex-shrink: 0;
+	}
     .stat-pill-n {
       font-size: 1.8rem; font-weight: 700;
       letter-spacing: -0.03em; color: var(--ink);
@@ -689,17 +691,25 @@
 
     /* ─── RESPONSIVE ─── */
     @media (max-width: 960px) {
-      nav { padding: 0 1.5rem; }
-      .hero { padding: 100px 1.5rem 8rem; }
-      .hero-stats { position: static; flex-direction: row; margin-top: 3rem; flex-wrap: wrap; }
-      .about-strip { flex-direction: column; padding: 2rem 1.5rem; gap: 1.5rem; }
-      .section-wrap { padding: 4rem 1.5rem; }
-      .proj-featured { grid-template-columns: 1fr; }
-      .feat-img { height: 220px; }
-      .proj-grid { grid-template-columns: 1fr 1fr; }
-      .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 3rem; }
-      footer { flex-direction: column; gap: 0.75rem; text-align: center; padding: 1.5rem; }
-    }
+		nav { padding: 0 1.5rem; }
+		.hero { padding: 100px 1.5rem 8rem; }
+		.hero-stats { position: static; flex-direction: row; margin-top: 3rem; flex-wrap: wrap; }
+		.about-strip { flex-direction: column; padding: 2rem 1.5rem; gap: 1.5rem; }
+		.section-wrap { padding: 4rem 1.5rem; }
+		.proj-grid { grid-template-columns: 1fr 1fr; }
+		.about-grid, .contact-grid { grid-template-columns: 1fr; gap: 3rem; }
+		footer { flex-direction: column; gap: 0.75rem; text-align: center; padding: 1.5rem; }
+
+		/* Carousel / featured — stack on mobile */
+		.carousel-slide { grid-template-columns: 1fr; }
+		.carousel-slide .feat-img { width: 100%; }
+		.carousel-slide .feat-img img { width: 100%; height: auto; display: block; }
+		.carousel-slide .feat-body { padding: 1.8rem; }
+		.carousel-btn { top: auto; bottom: 1rem; transform: none; }
+		.carousel-prev { left: 1rem; bottom: 1rem; }
+		.carousel-next { right: 1rem; bottom: 1rem; }
+		.carousel-dots { bottom: 4rem; }
+		}
     @media (max-width: 580px) {
       .proj-grid { grid-template-columns: 1fr; }
       h1 { font-size: 2.5rem; }
