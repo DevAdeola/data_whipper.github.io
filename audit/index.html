@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PBIP Audit: Power BI best practice checker</title>
-<meta name="description" content="Drop in a Power BI Project (PBIP) and get a scored best practice review of your semantic model and report, with a fix for every issue. Runs entirely in your browser.">
+<meta name="description" content="Score your Power BI Project (PBIP) against 24 best practice rules, with a fix for every issue. Runs entirely in your browser.">
 <meta property="og:title" content="PBIP Audit: Power BI best practice checker">
-<meta property="og:description" content="Score your Power BI model and report against 24 best practice rules. Nothing is uploaded.">
+<meta property="og:description" content="Score your Power BI Project (PBIP) against 24 best practice rules, with a fix for every issue. Runs entirely in your browser.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#fbfbfd">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f59f00'/%3E%3Cstop offset='.5' stop-color='%23f2552c'/%3E%3Cstop offset='1' stop-color='%23d6336c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='%23fbfbfd'/%3E%3C/svg%3E">
@@ -61,7 +61,8 @@ nav.top {
 .nav-links { display: flex; gap: 22px; font-size: 13px; margin-left: auto; }
 .nav-links a { color: var(--ink); opacity: .8; }
 .nav-links a:hover { opacity: 1; text-decoration: none; }
-@media (max-width: 640px) { .nav-links a:not(:first-child) { display: none; } }
+@media (max-width: 640px) { .nav-cta { display: none; } .nav-links { gap: 16px; } .nav-links a:first-child { display: none; } }
+@media (max-width: 360px) { .brand { font-size: 0; gap: 0; } }
 
 .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; }
 section { padding-block: 72px 0; }
@@ -217,18 +218,23 @@ footer p { margin: 0; }
   section { padding-block: 56px 0; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+.nav-links a[aria-current="page"] { opacity: 1; font-weight: 600; }
+.promo { margin-top: 16px; border-radius: var(--radius); background: var(--ink); color: #fff; padding: 28px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.promo h4 { margin: 0; font-size: 24px; letter-spacing: -0.03em; line-height: 1.2; }
+.promo p { margin: 6px 0 0; color: rgba(255,255,255,.65); font-size: 15px; max-width: 52ch; }
+.promo .pill { background: #fff; color: var(--ink); text-decoration: none; display: inline-block; }
+.promo .pill:hover { background: #f1f1f4; text-decoration: none; }
 </style>
 
 </head>
 <body>
 <nav class="top" aria-label="Main">
   <div class="nav-in">
-    <a class="brand" href="#check"><span class="brand-mark" aria-hidden="true"></span>PBIP Audit</a>
+    <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>Data Whipper Tools</a>
     <div class="nav-links">
       <a href="../">Portfolio</a>
-      <a href="#results">Your audit</a>
-      <a href="#how">How it works</a>
-      <a href="#passed-h">Rules</a>
+      <a href="../audit/" aria-current="page">PBIP Audit</a>
+      <a href="../format/">Formatter</a>
     </div>
     <button class="pill dark small nav-cta" type="button" id="navLoad">Check a report</button>
   </div>
@@ -243,6 +249,7 @@ footer p { margin: 0; }
       <button class="pill dark" type="button" id="pickFolder">Choose folder</button>
       <button class="pill line" type="button" id="pickZip">Choose .zip</button>
       <button class="textlink" type="button" id="loadSample">See an example &rsaquo;</button>
+      <a class="textlink" href="../format/">Format DAX or SQL &rsaquo;</a>
     </div>
   </header>
 
@@ -305,6 +312,10 @@ footer p { margin: 0; }
         <div class="stat">0</div>
         <div><h4>Installs needed.</h4><p>No Tabular Editor, no command line. Save as a Power BI project and drop it in.</p></div>
       </div>
+    </div>
+    <div class="promo">
+      <div><h4>Writing DAX or SQL today?</h4><p>Paste a measure or a query into the formatter and get it back laid out the way experienced developers write it.</p></div>
+      <a class="pill" href="../format/">Open the formatter</a>
     </div>
   </section>
 
@@ -1082,6 +1093,7 @@ drop.addEventListener("drop", (e) => {
 });
 
 audit(SAMPLE, true);
+
 </script>
 
 </body>
