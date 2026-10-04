@@ -61,7 +61,7 @@ nav.top {
 .nav-links { display: flex; gap: 22px; font-size: 13px; margin-left: auto; }
 .nav-links a { color: var(--ink); opacity: .8; }
 .nav-links a:hover { opacity: 1; text-decoration: none; }
-@media (max-width: 640px) { .nav-links { display: none; } .nav-cta { margin-left: auto; } }
+@media (max-width: 640px) { .nav-links a:not(:first-child) { display: none; } }
 
 .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; }
 section { padding-block: 72px 0; }
@@ -225,6 +225,7 @@ footer p { margin: 0; }
   <div class="nav-in">
     <a class="brand" href="#check"><span class="brand-mark" aria-hidden="true"></span>PBIP Audit</a>
     <div class="nav-links">
+      <a href="../">Portfolio</a>
       <a href="#results">Your audit</a>
       <a href="#how">How it works</a>
       <a href="#passed-h">Rules</a>
