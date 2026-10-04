@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PBIP Audit: Power BI best practice checker</title>
+<meta name="description" content="Drop in a Power BI Project (PBIP) and get a scored best practice review of your semantic model and report, with a fix for every issue. Runs entirely in your browser.">
+<meta property="og:title" content="PBIP Audit: Power BI best practice checker">
+<meta property="og:description" content="Score your Power BI model and report against 24 best practice rules. Nothing is uploaded.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#fbfbfd">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f59f00'/%3E%3Cstop offset='.5' stop-color='%23f2552c'/%3E%3Cstop offset='1' stop-color='%23d6336c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='%23fbfbfd'/%3E%3C/svg%3E">
+<style>[hidden]{display:none!important} body{margin:0} img{max-width:100%}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* Layout: product-page rhythm. Frosted nav, centred hero with the drop tile, score rings, findings, bento of capabilities, rules passed. Light only by design. */
+:root {
+  color-scheme: light;
+  --bg: #fbfbfd;
+  --panel: #ffffff;
+  --soft: #f2f2f6;
+  --ink: #1d1d1f;
+  --muted: #6e6e76;
+  --hair: #e3e3e8;
+  --link: #0a64d8;
+  --amber: #f59f00;
+  --coral: #f2552c;
+  --rose: #d6336c;
+  --good: #1f9d55;
+  --warn: #d97706;
+  --crit: #e03131;
+  --info: #3b5bdb;
+  --good-soft: #e6f6ec;
+  --warn-soft: #fdf1e0;
+  --crit-soft: #fdeaea;
+  --info-soft: #e9edfc;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius: 28px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font: 17px/1.5 var(--sans); -webkit-font-smoothing: antialiased; letter-spacing: -0.011em; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.mono { font-family: var(--mono); }
+
+/* Nav */
+nav.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: rgba(251, 251, 253, 0.78); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--hair);
+}
+.nav-in { max-width: 1080px; margin: 0 auto; padding-inline: 16px; height: 52px; display: flex; align-items: center; gap: 24px; }
+.brand { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.brand-mark { width: 22px; height: 22px; border-radius: 7px; background: conic-gradient(from 200deg, var(--amber), var(--coral), var(--rose), var(--amber)); display: grid; place-items: center; }
+.brand-mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bg); }
+.nav-links { display: flex; gap: 22px; font-size: 13px; margin-left: auto; }
+.nav-links a { color: var(--ink); opacity: .8; }
+.nav-links a:hover { opacity: 1; text-decoration: none; }
+@media (max-width: 640px) { .nav-links { display: none; } .nav-cta { margin-left: auto; } }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; }
+section { padding-block: 72px 0; }
+
+/* Buttons */
+.pill { font: 500 17px/1 var(--sans); border-radius: 980px; padding: 13px 22px; cursor: pointer; border: 1px solid transparent; transition: transform .15s, background .15s, box-shadow .15s; }
+.pill:active { transform: scale(.97); }
+.pill.dark { background: var(--ink); color: #fff; }
+.pill.dark:hover { background: #000; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.pill.line { background: transparent; color: var(--ink); border-color: #c9c9cf; }
+.pill.line:hover { border-color: var(--ink); }
+.pill.small { font-size: 13px; padding: 7px 14px; }
+.textlink { font-size: 17px; color: var(--link); background: none; border: 0; cursor: pointer; padding: 6px 2px; font-family: var(--sans); }
+.textlink:hover { text-decoration: underline; }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid rgba(10,100,216,.45); outline-offset: 3px; }
+
+/* Hero */
+.hero { text-align: center; padding-block: 76px 8px; display: grid; justify-items: center; gap: 18px; }
+.eyebrow { font-size: 15px; font-weight: 600; color: var(--coral); letter-spacing: 0; }
+h1 { margin: 0; font-size: clamp(44px, 9vw, 96px); line-height: 1.02; font-weight: 700; letter-spacing: -0.045em; text-wrap: balance; max-width: 13ch; }
+.grad { background: linear-gradient(100deg, var(--amber) 0%, var(--coral) 48%, var(--rose) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { margin: 0; font-size: clamp(19px, 2.4vw, 24px); line-height: 1.4; color: var(--muted); max-width: 38ch; text-wrap: balance; font-weight: 500; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; margin-top: 8px; }
+
+/* Drop tile */
+.drop-wrap { padding-block: 40px 0; }
+.drop {
+  position: relative; border-radius: var(--radius); background: var(--panel); padding: 44px 24px;
+  display: grid; justify-items: center; gap: 14px; text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 20px 60px rgba(30, 20, 60, .07);
+  transition: transform .2s, box-shadow .2s;
+}
+.drop::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px;
+  background: linear-gradient(120deg, rgba(245,159,0,.5), rgba(242,85,44,.4), rgba(214,51,108,.5));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: .55; transition: opacity .2s; pointer-events: none;
+}
+.drop.over { transform: scale(1.01); box-shadow: 0 30px 80px rgba(242, 85, 44, .18); }
+.drop.over::before { opacity: 1; }
+.drop-icon { width: 64px; height: 64px; border-radius: 20px; background: var(--soft); display: grid; place-items: center; }
+.drop h2 { margin: 0; font-size: clamp(24px, 3.4vw, 32px); letter-spacing: -0.03em; line-height: 1.15; }
+.drop p { margin: 0; color: var(--muted); max-width: 52ch; }
+.formats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.fmt { font: 500 12px/1 var(--mono); padding: 7px 10px; border-radius: 980px; background: var(--soft); color: var(--muted); }
+.status { min-height: 1.5em; font-size: 15px; margin: 0; color: var(--muted); }
+.status.error { color: var(--crit); }
+input[type=file] { display: none; }
+
+/* Results */
+.res-head { display: grid; gap: 8px; text-align: center; justify-items: center; }
+.kicker { font-size: 15px; font-weight: 600; color: var(--muted); }
+h2.big { margin: 0; font-size: clamp(36px, 6vw, 64px); letter-spacing: -0.04em; line-height: 1.05; text-wrap: balance; }
+.tag { font: 600 12px/1 var(--sans); padding: 6px 10px; border-radius: 980px; background: var(--soft); color: var(--muted); }
+
+.rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 36px; }
+.ring-card { background: var(--panel); border-radius: var(--radius); padding: 28px 20px 24px; display: grid; justify-items: center; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(30,20,60,.05); }
+.ring-card.overall { background: var(--ink); color: #fff; }
+.ring { position: relative; width: 168px; height: 168px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { fill: none; stroke: var(--soft); stroke-width: 14; }
+.ring-card.overall .ring .track { stroke: rgba(255,255,255,.12); }
+.ring .bar { fill: none; stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1); }
+.ring .val { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; }
+.ring .val b { font-size: 52px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring .val span { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.ring-card.overall .ring .val span { color: rgba(255,255,255,.6); }
+.ring-label { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.verdict { font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 980px; }
+.verdict.good { color: var(--good); background: var(--good-soft); }
+.verdict.warn { color: var(--warn); background: var(--warn-soft); }
+.verdict.crit { color: var(--crit); background: var(--crit-soft); }
+.ring-card.overall .verdict { background: rgba(255,255,255,.12); color: #fff; }
+
+.inventory { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; padding: 0; list-style: none; }
+.inventory li { background: var(--panel); border: 1px solid var(--hair); border-radius: 980px; padding: 8px 14px; font-size: 14px; color: var(--muted); }
+.inventory b { color: var(--ink); font-weight: 600; }
+
+/* Findings */
+.find-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+.find-head h3 { margin: 0; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.035em; line-height: 1.1; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
+.segmented { display: inline-flex; background: var(--soft); border-radius: 980px; padding: 3px; gap: 2px; }
+.segmented button { font: 500 14px/1 var(--sans); border: 0; background: transparent; color: var(--ink); padding: 8px 14px; border-radius: 980px; cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.segmented .n { font: 500 12px/1 var(--mono); color: var(--muted); margin-left: 4px; }
+.toggle { font: 500 14px/1 var(--sans); border: 1px solid var(--hair); background: var(--panel); color: var(--muted); padding: 8px 14px; border-radius: 980px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.toggle[aria-pressed="true"] { color: var(--ink); border-color: #bdbdc4; }
+.toggle[aria-pressed="false"] .dot { opacity: .3; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.warning { background: var(--warn); } .dot.info { background: var(--info); } .dot.error { background: var(--crit); }
+
+.findings { display: grid; gap: 12px; margin-top: 22px; }
+.rule { background: var(--panel); border-radius: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(30,20,60,.04); overflow: hidden; }
+.rule summary { list-style: none; cursor: pointer; padding: 18px 22px; display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; }
+.rule summary::-webkit-details-marker { display: none; }
+.sev-badge { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font: 600 11px/1 var(--mono); }
+.sev-badge.warning { background: var(--warn-soft); color: var(--warn); }
+.sev-badge.info { background: var(--info-soft); color: var(--info); }
+.sev-badge.error { background: var(--crit-soft); color: var(--crit); }
+.rtitle { font-weight: 600; font-size: 17px; letter-spacing: -0.015em; min-width: 0; }
+.rtitle small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
+.count { font: 600 15px/1 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
+.chev { width: 10px; height: 10px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-3px); transition: transform .2s; }
+details[open] .chev { transform: rotate(225deg) translateY(-1px); }
+.rule-body { padding: 0 22px 20px; display: grid; gap: 14px; }
+.objs { list-style: none; margin: 0; padding: 0; }
+.objs li { padding: 12px 0; border-top: 1px solid var(--hair); display: grid; gap: 3px; min-width: 0; }
+.objs code { font: 500 13px/1.45 var(--mono); overflow-wrap: anywhere; }
+.objs span { font-size: 15px; color: var(--muted); }
+.fix { margin: 0; padding: 14px 16px; border-radius: 16px; background: linear-gradient(120deg, rgba(245,159,0,.08), rgba(214,51,108,.07)); font-size: 15px; }
+.fix b { font-weight: 600; }
+.empty { padding: 28px; border-radius: 22px; background: var(--panel); color: var(--muted); text-align: center; }
+
+/* Bento */
+.bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-top: 28px; }
+.tile { border-radius: var(--radius); background: var(--panel); padding: 28px; display: grid; align-content: space-between; gap: 18px; min-height: 230px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(30,20,60,.05); min-width: 0; }
+.tile.w3 { grid-column: span 3; } .tile.w2 { grid-column: span 2; } .tile.w4 { grid-column: span 4; }
+.tile .stat { font-size: clamp(56px, 8vw, 88px); font-weight: 700; letter-spacing: -0.06em; line-height: .95; font-variant-numeric: tabular-nums; }
+.tile h4 { margin: 0; font-size: 21px; letter-spacing: -0.025em; line-height: 1.2; }
+.tile p { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+.tile.dark { background: var(--ink); color: #fff; }
+.tile.dark p { color: rgba(255,255,255,.65); }
+.tile.warm { background: linear-gradient(140deg, #fff4dc 0%, #ffe3d6 55%, #fbdbe6 100%); }
+.mini-ring { display: flex; gap: 10px; }
+.mini-ring i { width: 44px; height: 44px; border-radius: 50%; border: 6px solid var(--soft); }
+.mini-ring i:nth-child(1) { border-color: var(--good) var(--good) var(--good) var(--soft); }
+.mini-ring i:nth-child(2) { border-color: var(--warn) var(--warn) var(--soft) var(--soft); }
+.mini-ring i:nth-child(3) { border-color: var(--crit) var(--soft) var(--soft) var(--soft); }
+.lock { width: 46px; height: 46px; }
+@media (max-width: 760px) { .bento { grid-template-columns: 1fr 1fr; } .tile.w3, .tile.w2, .tile.w4 { grid-column: span 2; } .tile { min-height: 0; } }
+
+/* Passed */
+.passed { list-style: none; margin: 24px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.passed li { background: var(--panel); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; font-size: 15px; }
+.passed li .tick { width: 22px; height: 22px; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+.passed li .rid { font: 500 12px/1 var(--mono); color: var(--muted); }
+
+footer { margin-top: 88px; border-top: 1px solid var(--hair); padding-block: 24px 48px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+footer .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+footer b { color: var(--ink); font-weight: 600; }
+footer p { margin: 0; }
+#mdFallback { width: 100%; min-height: 200px; margin-top: 16px; font: 13px/1.45 var(--mono); background: var(--panel); color: var(--ink); border: 1px solid var(--hair); border-radius: 16px; padding: 14px; }
+
+.rise { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
+.rise.d1 { animation-delay: .06s; } .rise.d2 { animation-delay: .12s; } .rise.d3 { animation-delay: .18s; }
+@keyframes rise { from { transform: translateY(14px); } to { transform: none; } }
+@media (max-width: 560px) {
+  .rule summary { grid-template-columns: auto 1fr auto; padding: 16px; }
+  .rule summary .chev { display: none; }
+  .rule-body { padding: 0 16px 16px; }
+  .drop { padding: 32px 18px; }
+  section { padding-block: 56px 0; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+</style>
+
+</head>
+<body>
+<nav class="top" aria-label="Main">
+  <div class="nav-in">
+    <a class="brand" href="#check"><span class="brand-mark" aria-hidden="true"></span>PBIP Audit</a>
+    <div class="nav-links">
+      <a href="#results">Your audit</a>
+      <a href="#how">How it works</a>
+      <a href="#passed-h">Rules</a>
+    </div>
+    <button class="pill dark small nav-cta" type="button" id="navLoad">Check a report</button>
+  </div>
+</nav>
+
+<main class="wrap" id="check">
+  <header class="hero">
+    <span class="eyebrow rise">Power BI best practice checker</span>
+    <h1 class="rise d1">Every report. <span class="grad">Reviewed in seconds.</span></h1>
+    <p class="lede rise d2">Drop in a Power BI Project. Get a score for your model and your report, and a clear fix for every issue.</p>
+    <div class="cta-row rise d3">
+      <button class="pill dark" type="button" id="pickFolder">Choose folder</button>
+      <button class="pill line" type="button" id="pickZip">Choose .zip</button>
+      <button class="textlink" type="button" id="loadSample">See an example &rsaquo;</button>
+    </div>
+  </header>
+
+  <div class="drop-wrap">
+    <div class="drop" id="drop" aria-label="Drop a project here">
+      <div class="drop-icon" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      </div>
+      <h2>Drop your project here.</h2>
+      <p>The folder that holds your .pbip file, or a zip of it. Nothing is uploaded: every check runs on your own computer.</p>
+      <div class="formats" aria-label="Supported formats"><span class="fmt">TMDL</span><span class="fmt">model.bim</span><span class="fmt">PBIR</span><span class="fmt">report.json</span><span class="fmt">.zip</span></div>
+      <p class="status" id="status" role="status"></p>
+    </div>
+    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <input type="file" id="zipInput" accept=".zip,application/zip">
+  </div>
+
+  <section id="results" aria-live="polite">
+    <div class="res-head" id="resHead"></div>
+    <div class="rings" id="rings"></div>
+    <ul class="inventory" id="inventory"></ul>
+  </section>
+
+  <section id="findingsSection" hidden>
+    <div class="find-head">
+      <h3>What to fix.</h3>
+      <button class="pill line small" type="button" id="copyMd">Copy as Markdown</button>
+    </div>
+    <div class="controls">
+      <div class="segmented" id="areaSeg" role="group" aria-label="Filter by area"></div>
+      <div id="sevToggles" role="group" aria-label="Filter by severity" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+    <div class="findings" id="findings"></div>
+    <textarea id="mdFallback" aria-label="Markdown report" hidden readonly></textarea>
+  </section>
+
+  <section id="how">
+    <div class="res-head">
+      <span class="kicker">How it works</span>
+      <h2 class="big">Built for the way Power BI <span class="grad">really works.</span></h2>
+    </div>
+    <div class="bento">
+      <div class="tile w4 warm">
+        <div class="stat">24</div>
+        <div><h4>Rules across model and report.</h4><p>Relationships, DAX patterns, date tables, alt text, layout, slicers and themes. Each finding comes with the fix.</p></div>
+      </div>
+      <div class="tile w2 dark">
+        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <div><h4>Private by design.</h4><p>Files never leave your browser. Only metadata is read, never your data.</p></div>
+      </div>
+      <div class="tile w2">
+        <div class="mini-ring" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div><h4>One clear score.</h4><p>Model and report scored out of 100, with a cap per rule so one noisy issue cannot sink you.</p></div>
+      </div>
+      <div class="tile w2">
+        <div class="stat">4</div>
+        <div><h4>Formats read.</h4><p>TMDL and model.bim for models. PBIR and report.json for reports.</p></div>
+      </div>
+      <div class="tile w2">
+        <div class="stat">0</div>
+        <div><h4>Installs needed.</h4><p>No Tabular Editor, no command line. Save as a Power BI project and drop it in.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="passedSection" hidden>
+    <div class="res-head"><span class="kicker">Already right</span><h2 class="big" id="passed-h">Rules passed.</h2></div>
+    <ul class="passed" id="passed"></ul>
+  </section>
+
+  <footer>
+    <div class="cols">
+      <p><b>Creating a PBIP.</b> In Power BI Desktop, choose File &gt; Save as and pick Power BI project. Turning on the TMDL and PBIR preview options gives the most complete results.</p>
+      <p><b>Scoring.</b> Each area starts at 100. Warnings cost 3 points and info items 1, capped per rule at 12 and 5. Overall is the average of the areas checked.</p>
+      <p><b>Limits.</b> Query speed, model size and data quality need the running model. Use Performance Analyzer, DAX Studio and VertiPaq Analyzer alongside this check.</p>
+    </div>
+  </footer>
+</main>
+
+<script>
+/* PBIP Audit engine: browser-side port of pbip_audit.py.
+   Input: an object mapping file paths ("Folder/Sub/file.tmdl") to text.
+   Output: the same result shape as the Python prototype. */
+const PBIPAudit = (() => {
+  // ------------------------------------------------------------------ TMDL
+  const DECL = new Set(["model", "table", "column", "measure", "relationship", "partition",
+    "hierarchy", "level", "annotation", "role", "tablePermission", "calculationGroup",
+    "calculationItem", "expression", "culture", "perspective", "perspectiveTable",
+    "perspectiveColumn", "perspectiveMeasure", "ref", "dataSource", "variation",
+    "extendedProperty", "linguisticMetadata", "queryGroup", "calendar", "database",
+    "member", "modelPermission", "translation"]);
+
+  function indentOf(line) {
+    let t = 0, s = 0;
+    for (const ch of line) { if (ch === "\t") t++; else if (ch === " ") s++; else break; }
+    return t + Math.floor(s / 4);
+  }
+
+  function parseName(rest) {
+    rest = rest.trim();
+    if (rest.startsWith("'")) {
+      let i = 1, out = "";
+      while (i < rest.length) {
+        if (rest[i] === "'") {
+          if (rest[i + 1] === "'") { out += "'"; i += 2; continue; }
+          i++; break;
+        }
+        out += rest[i]; i++;
+      }
+      return [out, rest.slice(i)];
+    }
+    const m = rest.match(/^([^\s=]+)([\s\S]*)$/);
+    return m ? [m[1], m[2]] : ["", rest];
+  }
+
+  function readExpr(lines, i, first, minInd) {
+    first = first.trim();
+    const parts = [];
+    if (first.startsWith("```")) {
+      const body = first.slice(3).trim();
+      if (body.endsWith("```")) return [body.slice(0, -3).trim(), i + 1];
+      if (body) parts.push(body);
+      i++;
+      while (i < lines.length) {
+        const s = lines[i].trim();
+        if (s.endsWith("```")) { if (s !== "```") parts.push(s.slice(0, -3)); i++; break; }
+        parts.push(s); i++;
+      }
+      return [parts.join("\n").trim(), i];
+    }
+    if (first) parts.push(first);
+    i++;
+    while (i < lines.length) {
+      const raw = lines[i];
+      if (!raw.trim()) {
+        let j = i + 1;
+        while (j < lines.length && !lines[j].trim()) j++;
+        if (j < lines.length && indentOf(lines[j]) >= minInd) { parts.push(""); i++; continue; }
+        break;
+      }
+      if (indentOf(raw) >= minInd) { parts.push(raw.trim()); i++; } else break;
+    }
+    return [parts.join("\n").trim(), i];
+  }
+
+  function parseTmdl(text) {
+    const lines = text.replace(/\r\n/g, "\n").split("\n");
+    const node = (kind, name, expr, indent, description = "") =>
+      ({ kind, name, expr, indent, props: {}, children: [], description });
+    const root = node("root", "", "", -1);
+    const stack = [root];
+    let desc = [];
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i];
+      const s = raw.trim();
+      if (!s) { i++; continue; }
+      const ind = indentOf(raw);
+      if (s.startsWith("///")) { desc.push(s.slice(3).trim()); i++; continue; }
+      while (stack[stack.length - 1].indent >= ind) stack.pop();
+      const parent = stack[stack.length - 1];
+      const wm = s.match(/^[A-Za-z_]\w*/);
+      const word = wm ? wm[0] : "";
+      const after = s.slice(word.length);
+      const nxt = after.trimStart().slice(0, 1);
+      if (DECL.has(word) && nxt !== ":" && nxt !== "=") {
+        let [name, rem] = parseName(after);
+        rem = rem.trim();
+        let expr = "";
+        if (rem.startsWith("=")) [expr, i] = readExpr(lines, i, rem.slice(1), ind + 2);
+        else i++;
+        const n = node(word, name, expr, ind, desc.join("\n"));
+        desc = [];
+        parent.children.push(n);
+        stack.push(n);
+        continue;
+      }
+      desc = [];
+      let m = s.match(/^([A-Za-z_]\w*)\s*:\s*(.*)$/);
+      if (m) { parent.props[m[1]] = m[2].trim(); i++; continue; }
+      m = s.match(/^([A-Za-z_]\w*)\s*=\s*(.*)$/);
+      if (m) { let expr; [expr, i] = readExpr(lines, i, m[2], ind + 1); parent.props[m[1]] = expr; continue; }
+      if (/^[A-Za-z_]\w*$/.test(s)) parent.props[s] = true;
+      i++;
+    }
+    return root;
+  }
+
+  const truthy = (v) => typeof v === "boolean" ? v : ["true", "1", ""].includes(String(v).trim().toLowerCase());
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+  function tableFromTmdl(n) {
+    const t = { name: n.name, isHidden: has(n.props, "isHidden") && truthy(n.props.isHidden),
+      dataCategory: String(n.props.dataCategory || ""), isCalculated: false, isCalcGroup: false,
+      columns: [], measures: [] };
+    for (const c of n.children) {
+      if (c.kind === "column") {
+        t.columns.push({ table: t.name, name: c.name, dataType: String(c.props.dataType || ""),
+          summarizeBy: c.props.summarizeBy ?? null,
+          isHidden: has(c.props, "isHidden") && truthy(c.props.isHidden),
+          isCalculated: !!c.expr, expression: c.expr });
+      } else if (c.kind === "measure") {
+        let fmt = String(c.props.formatString || "");
+        if (!fmt && has(c.props, "formatStringDefinition")) fmt = "(dynamic)";
+        t.measures.push({ table: t.name, name: c.name, expression: c.expr, formatString: fmt,
+          displayFolder: String(c.props.displayFolder || ""),
+          description: c.description || String(c.props.description || "") });
+      } else if (c.kind === "partition" && c.expr.trim().toLowerCase() === "calculated") {
+        t.isCalculated = true;
+      } else if (c.kind === "calculationGroup") {
+        t.isCalcGroup = true;
+      }
+    }
+    return t;
+  }
+
+  const relFromTmdl = (n) => ({
+    fromColumn: String(n.props.fromColumn || ""), toColumn: String(n.props.toColumn || ""),
+    crossFilter: String(n.props.crossFilteringBehavior || "oneDirection"),
+    fromCard: String(n.props.fromCardinality || "many"), toCard: String(n.props.toCardinality || "one"),
+  });
+
+  function loadTmdlModel(files, name) {
+    const tables = new Map(); const rels = []; const ann = {};
+    for (const [path, text] of files) {
+      if (/\/(cultures|perspectives)\//.test(path)) continue;
+      const root = parseTmdl(text);
+      for (const n of root.children) {
+        if (n.kind === "table") tables.set(n.name, tableFromTmdl(n));
+        else if (n.kind === "relationship") rels.push(relFromTmdl(n));
+        else if (n.kind === "model") {
+          for (const c of n.children) {
+            if (c.kind === "annotation") ann[c.name] = c.expr;
+            else if (c.kind === "relationship") rels.push(relFromTmdl(c));
+          }
+        }
+      }
+    }
+    return { name, format: "TMDL", tables: [...tables.values()], relationships: rels, annotations: ann };
+  }
+
+  // ------------------------------------------------------------- model.bim
+  const join = (v) => Array.isArray(v) ? v.join("\n") : String(v ?? "");
+
+  function loadBimModel(text, name) {
+    const d = JSON.parse(stripBom(text));
+    const m = d.model || d;
+    const tables = (m.tables || []).map((t) => ({
+      name: t.name || "", isHidden: !!t.isHidden, dataCategory: t.dataCategory || "",
+      isCalculated: (t.partitions || []).some((p) => (p.source || {}).type === "calculated"),
+      isCalcGroup: has(t, "calculationGroup"),
+      columns: (t.columns || []).filter((c) => c.type !== "rowNumber").map((c) => ({
+        table: t.name, name: c.name || "", dataType: c.dataType || "", summarizeBy: c.summarizeBy ?? null,
+        isHidden: !!c.isHidden, isCalculated: c.type === "calculated", expression: join(c.expression) })),
+      measures: (t.measures || []).map((ms) => ({
+        table: t.name, name: ms.name || "", expression: join(ms.expression),
+        formatString: ms.formatString || (ms.formatStringDefinition ? "(dynamic)" : ""),
+        displayFolder: ms.displayFolder || "", description: join(ms.description) })),
+    }));
+    const rels = (m.relationships || []).map((r) => ({
+      fromColumn: `${r.fromTable}.${r.fromColumn}`, toColumn: `${r.toTable}.${r.toColumn}`,
+      crossFilter: r.crossFilteringBehavior || "oneDirection",
+      fromCard: r.fromCardinality || "many", toCard: r.toCardinality || "one" }));
+    const ann = {};
+    for (const a of m.annotations || []) ann[a.name] = join(a.value);
+    return { name, format: "model.bim", tables, relationships: rels, annotations: ann };
+  }
+
+  // ---------------------------------------------------------------- report
+  const stripBom = (t) => t.replace(/^﻿/, "");
+  const parseJson = (t) => JSON.parse(stripBom(t));
+
+  function lit(o) {
+    const v = o && o.expr && o.expr.Literal ? o.expr.Literal.Value : undefined;
+    if (v === undefined) return null;
+    if (typeof v === "string" && v.length >= 2 && v[0] === "'" && v.endsWith("'")) return v.slice(1, -1).replace(/''/g, "'");
+    return v;
+  }
+  function objProp(objects, group, prop) {
+    const p = objects && objects[group] && objects[group][0] && objects[group][0].properties
+      ? objects[group][0].properties[prop] : undefined;
+    if (p === undefined) return [false, null];
+    const v = lit(p);
+    return [true, v === null ? "(dynamic)" : v];
+  }
+  const toBool = (v) => v === null || v === undefined ? null : typeof v === "boolean" ? v : String(v).toLowerCase() === "true";
+
+  function collectFields(obj, acc) {
+    if (Array.isArray(obj)) { for (const x of obj) collectFields(x, acc); return; }
+    if (obj && typeof obj === "object") {
+      for (const [k, v] of Object.entries(obj)) {
+        if ((k === "Measure" || k === "Column") && v && typeof v === "object" && has(v, "Property")) {
+          (k === "Measure" ? acc.measures : acc.columns).add(String(v.Property).toLowerCase());
+        }
+        if (k === "queryRef" && typeof v === "string" && v.includes(".")) acc.refs.add(v.split(".").slice(1).join(".").toLowerCase());
+        collectFields(v, acc);
+      }
+      return;
+    }
+    if (typeof obj === "string" && obj.trimStart().startsWith("{")) {
+      try { collectFields(JSON.parse(obj), acc); } catch (e) { /* not JSON */ }
+    }
+  }
+
+  function loadPbirReport(files, base, name) {
+    const acc = { measures: new Set(), columns: new Set(), refs: new Set() };
+    let theme = null;
+    const rj = files.get(`${base}/definition/report.json`);
+    if (rj) {
+      const j = parseJson(rj);
+      theme = ((j.themeCollection || {}).customTheme || {}).name || null;
+      collectFields(j, acc);
+    }
+    const metaText = files.get(`${base}/definition/pages/pages.json`);
+    const order = metaText ? (parseJson(metaText).pageOrder || []) : [];
+    const pageRe = new RegExp(`^${escapeRe(base)}/definition/pages/([^/]+)/page\\.json$`);
+    const pageIds = [];
+    for (const p of files.keys()) { const m = p.match(pageRe); if (m) pageIds.push(m[1]); }
+    pageIds.sort((a, b) => (order.includes(a) ? order.indexOf(a) : 999) - (order.includes(b) ? order.indexOf(b) : 999));
+
+    const pages = pageIds.map((pid) => {
+      const pj = parseJson(files.get(`${base}/definition/pages/${pid}/page.json`));
+      collectFields(pj, acc);
+      const disp = pj.displayName || pid;
+      const vRe = new RegExp(`^${escapeRe(base)}/definition/pages/${escapeRe(pid)}/visuals/([^/]+)/visual\\.json$`);
+      const visuals = [];
+      for (const [p, text] of [...files].sort()) {
+        const m = p.match(vRe);
+        if (!m) continue;
+        const vj = parseJson(text);
+        collectFields(vj, acc);
+        const pos = vj.position || {};
+        const common = { page: disp, name: vj.name || m[1], x: +pos.x || 0, y: +pos.y || 0,
+          width: +pos.width || 0, height: +pos.height || 0, isHidden: !!vj.isHidden };
+        if (vj.visualGroup) { visuals.push({ ...common, type: "group", isGroup: true }); continue; }
+        const v = vj.visual || {};
+        const vco = v.visualContainerObjects || {};
+        let [hasAlt, alt] = objProp(vco, "general", "altText");
+        if (!hasAlt) [hasAlt, alt] = objProp(v.objects || {}, "general", "altText");
+        visuals.push({ ...common, type: v.visualType || "", title: objProp(vco, "title", "text")[1],
+          titleShown: toBool(objProp(vco, "title", "show")[1]), altText: alt, isGroup: false });
+      }
+      return { displayName: disp, width: +pj.width || 1280, height: +pj.height || 720,
+        hidden: pj.visibility === "HiddenInViewMode", visuals };
+    });
+    return { name, format: "PBIR", pages, customTheme: theme, ...acc };
+  }
+
+  function loadLegacyReport(text, name) {
+    const acc = { measures: new Set(), columns: new Set(), refs: new Set() };
+    const rj = parseJson(text);
+    collectFields(rj, acc);
+    let theme = null;
+    try { theme = ((JSON.parse(rj.config || "{}").themeCollection || {}).customTheme || {}).name || null; } catch (e) { /* ignore */ }
+    const safe = (t) => { try { return JSON.parse(t || "{}"); } catch (e) { return {}; } };
+    const pages = (rj.sections || []).slice().sort((a, b) => (a.ordinal || 0) - (b.ordinal || 0)).map((s) => {
+      const scfg = safe(s.config);
+      const disp = s.displayName || s.name || "";
+      const visuals = (s.visualContainers || []).map((vc) => {
+        const cfg = safe(vc.config);
+        const common = { page: disp, name: cfg.name || "", x: +vc.x || 0, y: +vc.y || 0,
+          width: +vc.width || 0, height: +vc.height || 0 };
+        if (cfg.singleVisualGroup) return { ...common, type: "group", isGroup: true, isHidden: false };
+        const sv = cfg.singleVisual || {};
+        const vco = sv.vcObjects || {};
+        return { ...common, type: sv.visualType || "", title: objProp(vco, "title", "text")[1],
+          titleShown: toBool(objProp(vco, "title", "show")[1]), altText: objProp(vco, "general", "altText")[1],
+          isHidden: (sv.display || {}).mode === "hidden", isGroup: false };
+      });
+      return { displayName: disp, width: +s.width || 1280, height: +s.height || 720,
+        hidden: s.visibility === 1 || scfg.visibility === 1, visuals };
+    });
+    return { name, format: "Legacy report.json", pages, customTheme: theme, ...acc };
+  }
+
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // ------------------------------------------------------------- discovery
+  function discover(files) {
+    const roots = new Set();
+    for (const p of files.keys()) {
+      const segs = p.split("/");
+      segs.forEach((seg, k) => { if (/\.(SemanticModel|Dataset|Report)$/.test(seg)) roots.add(segs.slice(0, k + 1).join("/")); });
+    }
+    const models = [], reports = [], errors = [];
+    for (const root of roots) {
+      const name = root.split("/").pop().replace(/\.(SemanticModel|Dataset|Report)$/, "");
+      try {
+        if (/\.(SemanticModel|Dataset)$/.test(root)) {
+          const tmdl = [...files].filter(([p]) => p.startsWith(`${root}/definition/`) && p.endsWith(".tmdl")).sort();
+          if (tmdl.length) models.push(loadTmdlModel(tmdl, name));
+          else if (files.has(`${root}/model.bim`)) models.push(loadBimModel(files.get(`${root}/model.bim`), name));
+        } else {
+          const pbir = [...files.keys()].some((p) => p.startsWith(`${root}/definition/pages/`));
+          if (pbir) reports.push(loadPbirReport(files, root, name));
+          else if (files.has(`${root}/report.json`)) reports.push(loadLegacyReport(files.get(`${root}/report.json`), name));
+        }
+      } catch (e) {
+        errors.push(`${root}: ${e.message}`);
+      }
+    }
+    // Fallback when folder names are missing (some browsers pass bare file names):
+    // identify the model and report by file type instead.
+    if (!roots.size && files.size) {
+      const keys = [...files.keys()];
+      const pbip = keys.find((p) => p.endsWith(".pbip"));
+      const name = pbip ? pbip.split("/").pop().replace(/\.pbip$/, "") : "Project";
+      try {
+        const tmdl = [...files].filter(([p]) => p.endsWith(".tmdl")).sort();
+        const bim = keys.find((p) => /(^|\/)model\.bim(#\d+)?$/.test(p));
+        if (tmdl.length) models.push(loadTmdlModel(tmdl, name));
+        else if (bim) models.push(loadBimModel(files.get(bim), name));
+      } catch (e) { errors.push(`model: ${e.message}`); }
+      try {
+        const rj = keys.find((p) => /(^|\/)report\.json(#\d+)?$/.test(p) && files.get(p).includes('"sections"'));
+        if (rj) reports.push(loadLegacyReport(files.get(rj), name));
+      } catch (e) { errors.push(`report: ${e.message}`); }
+    }
+    return { models, reports, errors };
+  }
+
+  // ----------------------------------------------------------------- rules
+  const RULES = {
+    M01: ["Model", "warning", "Auto date/time is enabled", "Turn off Auto date/time (File > Options > Current file > Data load) and use a single shared date table."],
+    M02: ["Model", "warning", "Bidirectional relationship", "Set cross filter direction to Single. Use CROSSFILTER inside specific measures if two-way filtering is genuinely needed."],
+    M03: ["Model", "warning", "Many-to-many relationship", "Check the grain of both tables. Usually a bridge table or a proper dimension resolves it."],
+    M04: ["Model", "warning", "Visible numeric column will be summarised automatically", "Hide the column and create an explicit measure, or set Summarise by to None."],
+    M05: ["Model", "info", "Relationship key column is visible", "Hide key columns used in relationships so report authors use dimension attributes instead."],
+    M06: ["Model", "warning", "No table is marked as a date table", "Mark your calendar table as a date table so time intelligence functions behave correctly."],
+    M07: ["Model", "warning", "Measure has no format string", "Set a format string (for example #,0 or 0.0%) so values display consistently everywhere."],
+    M08: ["Model", "info", "Measures without descriptions", "Add descriptions. They appear as tooltips in the field list and help others reuse the model."],
+    M09: ["Model", "info", "Measures without display folders", "Organise measures into display folders once a table holds more than a handful."],
+    M10: ["Model", "warning", "Division operator used instead of DIVIDE", "Use DIVIDE(numerator, denominator) to handle divide-by-zero safely."],
+    M11: ["Model", "warning", "IFERROR or ISERROR used", "Avoid IFERROR and ISERROR. Handle the specific condition (for example with DIVIDE or IF) instead."],
+    M12: ["Model", "warning", "FILTER applied to a whole table", "Filter a column instead, for example FILTER(ALL(Sales[Amount]), ...) or a simple boolean filter in CALCULATE."],
+    M13: ["Model", "info", "Calculated columns present", "Push calculated columns upstream (SQL, view, dbt or Power Query) where possible."],
+    M14: ["Model", "info", "Measures not used in the report or other measures", "Remove unused measures, or hide them if they are kept for future use."],
+    R01: ["Report", "warning", "Too many visuals on a page", "Aim for around 8 data visuals or fewer per page. Move detail to drillthrough or tooltip pages."],
+    R02: ["Report", "warning", "Visual has no alt text", "Add alt text (Format > General > Alt text) describing what the visual shows."],
+    R03: ["Report", "info", "Visual has no meaningful title", "Give the visual a clear title that states the question it answers."],
+    R04: ["Report", "info", "Chart type worth reviewing", "Pie, donut and gauge charts are hard to read accurately. A bar chart or card is usually clearer."],
+    R05: ["Report", "warning", "Too many slicers on a page", "Use the filter pane, or consolidate slicers. Each slicer adds queries and visual noise."],
+    R06: ["Report", "info", "Visuals overlap", "Align visuals to a grid so none overlap unintentionally."],
+    R07: ["Report", "warning", "Visual extends beyond the page", "Move or resize the visual so it sits fully within the page canvas."],
+    R08: ["Report", "info", "No custom theme applied", "Apply a report theme (JSON) for consistent colours, fonts and visual defaults."],
+    R09: ["Report", "info", "Default page name", "Rename pages so users understand what each one covers."],
+    R10: ["Report", "info", "Empty page", "Remove the page or add content to it."],
+  };
+  const WEIGHTS = { error: [5, 15], warning: [3, 12], info: [1, 5] };
+  const NUMERIC = new Set(["int64", "double", "decimal", "currency"]);
+  const NON_DATA = new Set(["textbox", "shape", "basicshape", "image", "actionbutton", "pagenavigator", "bookmarknavigator", "group", ""]);
+  const SLICERS = new Set(["slicer", "advancedslicervisual", "listslicer", "textslicer", "buttonslicer"]);
+  const CARDS = new Set(["card", "cardvisual", "multirowcard", "kpi"]);
+  const REVIEW = { piechart: "pie chart", donutchart: "donut chart", gauge: "gauge" };
+
+  const F = (id, obj, detail) => {
+    const [category, severity, title, fix] = RULES[id];
+    return { ruleId: id, category, severity, title, obj, detail, fix };
+  };
+  const isSystem = (t) => /^(LocalDateTable_|DateTableTemplate_)/.test(t.name);
+
+  function stripDax(expr, keepNames) {
+    let s = expr.replace(/"(?:[^"]|"")*"/g, '""');
+    s = s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ").replace(/--[^\n]*/g, " ");
+    if (!keepNames) s = s.replace(/'(?:[^']|'')*'/g, "T").replace(/\[[^\]]*\]/g, "[c]");
+    return s;
+  }
+  function splitColRef(ref) {
+    const m = ref.match(/^\s*(?:'((?:[^']|'')+)'|([^.]+))\.(?:'((?:[^']|'')+)'|(.+?))\s*$/);
+    if (!m) return ["", ref];
+    return [(m[1] || m[2] || "").replace(/''/g, "'"), (m[3] || m[4] || "").replace(/''/g, "'")];
+  }
+  const short = (names, n = 8) => names.length <= n ? names.join(", ") : `${names.slice(0, n).join(", ")} and ${names.length - n} more`;
+
+  function modelRules(model, reports) {
+    const out = [];
+    const tables = model.tables.filter((t) => !isSystem(t));
+    const tableNames = new Set(tables.map((t) => t.name.toLowerCase()));
+    const measures = tables.flatMap((t) => t.measures);
+
+    const sys = model.tables.filter(isSystem);
+    if (sys.length || String(model.annotations.__PBI_TimeIntelligenceEnabled || "").trim() === "1") {
+      out.push(F("M01", "Model", sys.length ? `${sys.length} hidden auto date table${sys.length === 1 ? "" : "s"} found.` : "Model setting is on."));
+    }
+    for (const r of model.relationships) {
+      const label = `${r.fromColumn} to ${r.toColumn}`;
+      if (r.crossFilter.toLowerCase() === "bothdirections") out.push(F("M02", label, "Filters flow in both directions, which can cause ambiguity and slow queries."));
+      if (r.fromCard.toLowerCase() === "many" && r.toCard.toLowerCase() === "many") out.push(F("M03", label, "Both sides of the relationship are 'many'."));
+    }
+    const relCols = new Set();
+    for (const r of model.relationships) for (const ref of [r.fromColumn, r.toColumn]) {
+      const [t, c] = splitColRef(ref); relCols.add(`${t.toLowerCase()}|${c.toLowerCase()}`);
+    }
+    for (const t of tables) {
+      if (t.isHidden || t.isCalcGroup) continue;
+      for (const c of t.columns) {
+        if (c.isHidden) continue;
+        const isKey = relCols.has(`${t.name.toLowerCase()}|${c.name.toLowerCase()}`);
+        if (isKey && c.dataType.toLowerCase() === "datetime") continue;
+        if (isKey) { out.push(F("M05", `${t.name}[${c.name}]`, "Column is used in a relationship but visible to report authors.")); continue; }
+        const sb = String(c.summarizeBy || "default").toLowerCase();
+        if (NUMERIC.has(c.dataType.toLowerCase()) && sb !== "none") {
+          out.push(F("M04", `${t.name}[${c.name}]`, `Summarise by is '${sb}', so dragging it into a visual creates an implicit measure.`));
+        }
+      }
+    }
+    if (tables.length && !tables.some((t) => t.dataCategory.toLowerCase() === "time")) out.push(F("M06", "Model", "No table has its data category set to Time."));
+    for (const m of measures) if (!m.formatString) out.push(F("M07", `${m.table}[${m.name}]`, "Measure uses the default format."));
+    for (const t of tables) {
+      const noDesc = t.measures.filter((m) => !m.description.trim()).map((m) => m.name);
+      if (noDesc.length) out.push(F("M08", t.name, `${noDesc.length} of ${t.measures.length} measures: ${short(noDesc)}`));
+      if (t.measures.length > 5) {
+        const noFolder = t.measures.filter((m) => !m.displayFolder.trim()).map((m) => m.name);
+        if (noFolder.length) out.push(F("M09", t.name, `${noFolder.length} of ${t.measures.length} measures: ${short(noFolder)}`));
+      }
+      const calc = t.columns.filter((c) => c.isCalculated).map((c) => c.name);
+      if (calc.length) out.push(F("M13", t.name, `${calc.length} calculated column${calc.length === 1 ? "" : "s"}: ${short(calc)}`));
+    }
+    const dax = measures.map((m) => [`${m.table}[${m.name}]`, m.expression])
+      .concat(tables.flatMap((t) => t.columns.filter((c) => c.isCalculated).map((c) => [`${c.table}[${c.name}]`, c.expression])));
+    for (const [label, expr] of dax) {
+      if (!expr) continue;
+      const bare = stripDax(expr, false);
+      const named = stripDax(expr, true);
+      if (bare.includes("/")) out.push(F("M10", label, "Expression contains '/'."));
+      if (/\b(IFERROR|ISERROR)\s*\(/i.test(bare)) out.push(F("M11", label, "Expression wraps a calculation in IFERROR or ISERROR."));
+      for (const fm of named.matchAll(/\bFILTER\s*\(\s*('(?:[^']|'')+'|[A-Za-z_]\w*)\s*,/gi)) {
+        const tname = fm[1].replace(/^'|'$/g, "").replace(/''/g, "'");
+        if (tableNames.has(tname.toLowerCase())) { out.push(F("M12", label, `FILTER iterates the whole '${tname}' table.`)); break; }
+      }
+    }
+    if (reports.length) {
+      const used = new Set();
+      for (const r of reports) { r.measures.forEach((x) => used.add(x)); r.refs.forEach((x) => used.add(x)); }
+      const referenced = new Set();
+      for (const [, expr] of dax) for (const m of (expr || "").matchAll(/\[([^\]]+)\]/g)) referenced.add(m[1].toLowerCase());
+      for (const t of tables) {
+        const unused = t.measures.filter((m) => !used.has(m.name.toLowerCase()) && !referenced.has(m.name.toLowerCase())).map((m) => m.name);
+        if (unused.length) out.push(F("M14", t.name, `${unused.length} measure${unused.length === 1 ? "" : "s"}: ${short(unused)}`));
+      }
+    }
+    return out;
+  }
+
+  function overlap(a, b) {
+    const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+    const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+    if (w <= 0 || h <= 0) return 0;
+    return (w * h) / (Math.min(a.width * a.height, b.width * b.height) || 1);
+  }
+
+  function reportRules(report) {
+    const out = [];
+    if (!report.customTheme) out.push(F("R08", "Report", "Report uses a built-in base theme only."));
+    for (const p of report.pages) {
+      const vis = p.visuals.filter((v) => !v.isHidden && !v.isGroup);
+      const data = vis.filter((v) => !NON_DATA.has(v.type.toLowerCase()));
+      const slicers = data.filter((v) => SLICERS.has(v.type.toLowerCase()));
+      const charts = data.filter((v) => !SLICERS.has(v.type.toLowerCase()));
+      const pn = p.displayName;
+      if (/^(Page \d+|Duplicate of .*)$/i.test(pn)) out.push(F("R09", pn, "Page still has a default or duplicated name."));
+      if (!vis.length && !p.hidden) out.push(F("R10", pn, "Visible page with no visuals."));
+      if (data.length > 8) out.push(F("R01", pn, `${data.length} data visuals (including slicers) on one page.`));
+      if (slicers.length > 5) out.push(F("R05", pn, `${slicers.length} slicers on one page.`));
+      for (const v of charts) {
+        const label = `${pn} / ${v.type} (${v.name})`;
+        const t = v.type.toLowerCase();
+        if (!v.altText) out.push(F("R02", label, "Screen reader users get no description of this visual."));
+        if (!CARDS.has(t)) {
+          if (v.titleShown === false) out.push(F("R03", label, "Title is switched off."));
+          else if (!v.title) out.push(F("R03", label, "Relies on the auto-generated title (for example 'Sum of Amount by Region')."));
+        }
+        if (REVIEW[t]) out.push(F("R04", label, `Uses a ${REVIEW[t]}.`));
+      }
+      for (const v of vis) {
+        if (v.x < 0 || v.y < 0 || v.x + v.width > p.width + 1 || v.y + v.height > p.height + 1) {
+          out.push(F("R07", `${pn} / ${v.type} (${v.name})`,
+            `Visual spans x ${Math.round(v.x)} to ${Math.round(v.x + v.width)}, y ${Math.round(v.y)} to ${Math.round(v.y + v.height)} on a ${Math.round(p.width)} by ${Math.round(p.height)} page.`));
+        }
+      }
+      for (let i = 0; i < data.length; i++) for (let j = i + 1; j < data.length; j++) {
+        const r = overlap(data[i], data[j]);
+        if (r > 0.1) out.push(F("R06", `${pn} / ${data[i].name} and ${data[j].name}`, `${Math.round(r * 100)}% of the smaller visual is covered.`));
+      }
+    }
+    return out;
+  }
+
+  function score(findings, category) {
+    const per = {};
+    for (const f of findings) if (f.category === category) per[f.ruleId] = (per[f.ruleId] || 0) + 1;
+    let ded = 0;
+    for (const [id, n] of Object.entries(per)) { const [w, cap] = WEIGHTS[RULES[id][1]]; ded += Math.min(cap, w * n); }
+    return Math.max(0, 100 - ded);
+  }
+
+  const SEV = { error: 0, warning: 1, info: 2 };
+
+  function run(filesObj) {
+    const files = filesObj instanceof Map ? filesObj : new Map(Object.entries(filesObj));
+    const { models, reports, errors } = discover(files);
+    let findings = [];
+    for (const m of models) findings = findings.concat(modelRules(m, reports));
+    for (const r of reports) findings = findings.concat(reportRules(r));
+    findings.sort((a, b) => a.category.localeCompare(b.category) || SEV[a.severity] - SEV[b.severity] || a.ruleId.localeCompare(b.ruleId));
+    const scores = {};
+    if (models.length) scores.Model = score(findings, "Model");
+    if (reports.length) scores.Report = score(findings, "Report");
+    const vals = Object.values(scores);
+    const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    const pbip = [...files.keys()].find((p) => p.endsWith(".pbip"));
+    const project = pbip ? pbip.split("/").pop().replace(/\.pbip$/, "") : (models[0] || reports[0] || { name: "Project" }).name;
+    const failed = new Set(findings.map((f) => f.ruleId));
+    const passed = Object.keys(RULES).filter((id) => has(scores, RULES[id][0]) && !failed.has(id) && !(id === "M14" && !reports.length));
+    return {
+      project,
+      models: models.map((m) => ({ name: m.name, format: m.format, tables: m.tables.filter((t) => !isSystem(t)).length,
+        measures: m.tables.reduce((n, t) => n + t.measures.length, 0), relationships: m.relationships.length })),
+      reports: reports.map((r) => ({ name: r.name, format: r.format, pages: r.pages.length,
+        visuals: r.pages.reduce((n, p) => n + p.visuals.length, 0) })),
+      scores, overall, findings, errors,
+      passed: passed.map((id) => ({ ruleId: id, category: RULES[id][0], title: RULES[id][2] })),
+      ruleCount: Object.keys(RULES).length,
+    };
+  }
+
+  return { run, parseTmdl, RULES };
+})();
+if (typeof module !== "undefined") module.exports = PBIPAudit;
+
+</script>
+<script>
+const SAMPLE = {"SampleSales/SampleSales.pbip": "{\"version\": \"1.0\", \"artifacts\": [{\"report\": {\"path\": \"SampleSales.Report\"}}]}", "SampleSales/SampleSales.Report/definition.pbir": "{\"version\": \"4.0\", \"datasetReference\": {\"byPath\": {\"path\": \"../SampleSales.SemanticModel\"}}}", "SampleSales/SampleSales.SemanticModel/definition/model.tmdl": "model Model\n\tculture: en-GB\n\tdefaultPowerBIDataSourceVersion: powerBI_V3\n\tdiscourageImplicitMeasures\n\n\tannotation __PBI_TimeIntelligenceEnabled = 1\n\nref table Sales\nref table Customer\nref table Date\n", "SampleSales/SampleSales.SemanticModel/definition/relationships.tmdl": "relationship 7f1c2b1a-0000-0000-0000-000000000001\n\tcrossFilteringBehavior: bothDirections\n\tfromColumn: Sales.CustomerKey\n\ttoColumn: Customer.CustomerKey\n\nrelationship 7f1c2b1a-0000-0000-0000-000000000002\n\tfromColumn: Sales.OrderDate\n\ttoColumn: 'Date'.Date\n", "SampleSales/SampleSales.SemanticModel/definition/tables/Sales.tmdl": "table Sales\n\tlineageTag: 11111111-aaaa-bbbb-cccc-000000000001\n\n\t/// Total sales value in GBP\n\tmeasure 'Total Sales' = SUM(Sales[Amount])\n\t\tformatString: \u00a3#,0\n\t\tdisplayFolder: Sales\n\n\tmeasure 'Margin %' = [Total Profit] / [Total Sales]\n\t\tdisplayFolder: Profitability\n\n\tmeasure 'Total Profit' =\n\t\t\tSUMX(\n\t\t\t    Sales,\n\t\t\t    Sales[Amount] - Sales[Cost]\n\t\t\t)\n\t\tformatString: \u00a3#,0\n\n\tmeasure 'Safe Avg' = IFERROR(AVERAGE(Sales[Amount]), 0)\n\t\tformatString: \u00a3#,0.00\n\n\tmeasure 'High Value Sales' = CALCULATE([Total Sales], FILTER(Sales, Sales[Amount] > 1000))\n\t\tformatString: \u00a3#,0\n\n\t/// Average value per order. Uses DIVIDE so a URL like \"http://x/y\" in a string is ignored.\n\tmeasure 'Avg Order Value' = DIVIDE([Total Sales], DISTINCTCOUNT(Sales[OrderID])) // safe division\n\t\tformatString: \u00a3#,0.00\n\t\tdisplayFolder: Sales\n\n\tmeasure 'Old Test Measure' = COUNTROWS(Sales)\n\n\tcolumn OrderID\n\t\tdataType: int64\n\t\tsummarizeBy: none\n\t\tsourceColumn: OrderID\n\n\tcolumn CustomerKey\n\t\tdataType: int64\n\t\tsummarizeBy: sum\n\t\tsourceColumn: CustomerKey\n\n\tcolumn OrderDate\n\t\tdataType: dateTime\n\t\tsummarizeBy: none\n\t\tsourceColumn: OrderDate\n\n\tcolumn Amount\n\t\tdataType: decimal\n\t\tsummarizeBy: sum\n\t\tsourceColumn: Amount\n\n\tcolumn Cost\n\t\tdataType: decimal\n\t\tisHidden\n\t\tsummarizeBy: none\n\t\tsourceColumn: Cost\n\n\tcolumn 'Profit Band' = IF(Sales[Amount] - Sales[Cost] > 500, \"High\", \"Low\")\n\t\tdataType: string\n\t\tsummarizeBy: none\n\n\tpartition Sales = m\n\t\tmode: import\n\t\tsource =\n\t\t\t\tlet\n\t\t\t\t    Source = Sql.Database(\"server\", \"db\")\n\t\t\t\tin\n\t\t\t\t    Source\n", "SampleSales/SampleSales.SemanticModel/definition/tables/Date.tmdl": "table Date\n\n\tcolumn Date\n\t\tdataType: dateTime\n\t\tsummarizeBy: none\n\t\tsourceColumn: Date\n\n\tcolumn Year\n\t\tdataType: int64\n\t\tsummarizeBy: none\n\t\tsourceColumn: Year\n\n\tpartition Date = m\n\t\tmode: import\n\t\tsource = Sql.Database(\"server\", \"db\")\n", "SampleSales/SampleSales.SemanticModel/definition/tables/Customer.tmdl": "table Customer\n\n\tcolumn CustomerKey\n\t\tdataType: int64\n\t\tsummarizeBy: none\n\t\tsourceColumn: CustomerKey\n\n\tcolumn 'Customer Name'\n\t\tdataType: string\n\t\tsummarizeBy: none\n\t\tsourceColumn: Customer Name\n\n\tcolumn Region\n\t\tdataType: string\n\t\tsummarizeBy: none\n\t\tsourceColumn: Region\n\n\tpartition Customer = m\n\t\tmode: import\n\t\tsource = Sql.Database(\"server\", \"db\")\n", "SampleSales/SampleSales.SemanticModel/definition/tables/LocalDateTable_5d2e.tmdl": "table LocalDateTable_5d2e\n\tisHidden\n\tshowAsVariationsOnly\n\n\tcolumn Date\n\t\tdataType: dateTime\n\t\tisHidden\n\t\tsummarizeBy: none\n\n\tpartition LocalDateTable_5d2e = calculated\n\t\tmode: import\n\t\tsource = Calendar(Date(2020,1,1), Date(2026,12,31))\n", "SampleSales/SampleSales.Report/definition/report.json": "{\n  \"themeCollection\": {\n    \"baseTheme\": {\n      \"name\": \"CY24SU10\",\n      \"type\": \"SharedResources\"\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/version.json": "{\n  \"version\": \"2.0.0\"\n}", "SampleSales/SampleSales.Report/definition/pages/pages.json": "{\n  \"pageOrder\": [\n    \"ReportSection1\",\n    \"ReportSection2\",\n    \"ReportSection3\",\n    \"ReportSection4\"\n  ],\n  \"activePageName\": \"ReportSection1\"\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/page.json": "{\n  \"name\": \"ReportSection2\",\n  \"displayName\": \"Customer filters\",\n  \"displayOption\": \"FitToPage\",\n  \"width\": 1280,\n  \"height\": 720\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection4/page.json": "{\n  \"name\": \"ReportSection4\",\n  \"displayName\": \"Page 4\",\n  \"displayOption\": \"FitToPage\",\n  \"width\": 1280,\n  \"height\": 720\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/page.json": "{\n  \"name\": \"ReportSection1\",\n  \"displayName\": \"Page 1\",\n  \"displayOption\": \"FitToPage\",\n  \"width\": 1280,\n  \"height\": 720\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection3/page.json": "{\n  \"name\": \"ReportSection3\",\n  \"displayName\": \"Overview\",\n  \"displayOption\": \"FitToPage\",\n  \"width\": 1280,\n  \"height\": 720\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection3/visuals/kpi1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"kpi1\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 300,\n    \"height\": 120\n  },\n  \"visual\": {\n    \"visualType\": \"card\",\n    \"query\": {\n      \"queryState\": {\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Total sales'\"\n                }\n              }\n            }\n          }\n        }\n      ],\n      \"general\": [\n        {\n          \"properties\": {\n            \"altText\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Card showing total sales'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection3/visuals/trend1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"trend1\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 140,\n    \"z\": 0,\n    \"width\": 800,\n    \"height\": 400\n  },\n  \"visual\": {\n    \"visualType\": \"lineChart\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Date\"\n                    }\n                  },\n                  \"Property\": \"Year\"\n                }\n              },\n              \"queryRef\": \"Date.Year\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Sales trend by year'\"\n                }\n              }\n            }\n          }\n        }\n      ],\n      \"general\": [\n        {\n          \"properties\": {\n            \"altText\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Line chart of sales by year'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/bar1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"bar1\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 120,\n    \"z\": 0,\n    \"width\": 400,\n    \"height\": 280\n  },\n  \"visual\": {\n    \"visualType\": \"clusteredBarChart\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Sales by region'\"\n                }\n              }\n            }\n          }\n        }\n      ],\n      \"general\": [\n        {\n          \"properties\": {\n            \"altText\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Bar chart of sales by region'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/slicer1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer1\",\n  \"position\": {\n    \"x\": 640,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Date\"\n                    }\n                  },\n                  \"Property\": \"Year\"\n                }\n              },\n              \"queryRef\": \"Date.Year\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/line1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"line1\",\n  \"position\": {\n    \"x\": 420,\n    \"y\": 120,\n    \"z\": 0,\n    \"width\": 400,\n    \"height\": 280\n  },\n  \"visual\": {\n    \"visualType\": \"lineChart\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Date\"\n                    }\n                  },\n                  \"Property\": \"Year\"\n                }\n              },\n              \"queryRef\": \"Date.Year\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/card2/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"card2\",\n  \"position\": {\n    \"x\": 220,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"card\",\n    \"query\": {\n      \"queryState\": {\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Profit\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Profit\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/card3/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"card3\",\n  \"position\": {\n    \"x\": 430,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"card\",\n    \"query\": {\n      \"queryState\": {\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Margin %\"\n                }\n              },\n              \"queryRef\": \"Sales.Margin %\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/gauge1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"gauge1\",\n  \"position\": {\n    \"x\": 1100,\n    \"y\": 500,\n    \"z\": 0,\n    \"width\": 300,\n    \"height\": 200\n  },\n  \"visual\": {\n    \"visualType\": \"gauge\",\n    \"query\": {\n      \"queryState\": {\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Margin %\"\n                }\n              },\n              \"queryRef\": \"Sales.Margin %\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Margin'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/table1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"table1\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 410,\n    \"z\": 0,\n    \"width\": 600,\n    \"height\": 300\n  },\n  \"visual\": {\n    \"visualType\": \"tableEx\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Customer Name\"\n                }\n              },\n              \"queryRef\": \"Customer.Customer Name\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            },\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Safe Avg\"\n                }\n              },\n              \"queryRef\": \"Sales.Safe Avg\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"show\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"false\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/pie1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"pie1\",\n  \"position\": {\n    \"x\": 830,\n    \"y\": 120,\n    \"z\": 0,\n    \"width\": 300,\n    \"height\": 280\n  },\n  \"visual\": {\n    \"visualType\": \"pieChart\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Profit Band\"\n                }\n              },\n              \"queryRef\": \"Sales.Profit Band\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Sales by profit band'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/matrix1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"matrix1\",\n  \"position\": {\n    \"x\": 500,\n    \"y\": 420,\n    \"z\": 0,\n    \"width\": 500,\n    \"height\": 280\n  },\n  \"visual\": {\n    \"visualType\": \"pivotTable\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"High Value Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.High Value Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'High value sales'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/card1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"card1\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"card\",\n    \"query\": {\n      \"queryState\": {\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Total Sales\"\n                }\n              },\n              \"queryRef\": \"Sales.Total Sales\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"general\": [\n        {\n          \"properties\": {\n            \"altText\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Total sales'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection1/visuals/text1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"text1\",\n  \"position\": {\n    \"x\": 900,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 300,\n    \"height\": 60\n  },\n  \"visual\": {\n    \"visualType\": \"textbox\",\n    \"query\": {\n      \"queryState\": {}\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/slicer5/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer5\",\n  \"position\": {\n    \"x\": 430,\n    \"y\": 120,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/slicer1/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer1\",\n  \"position\": {\n    \"x\": 220,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/slicer4/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer4\",\n  \"position\": {\n    \"x\": 220,\n    \"y\": 120,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/slicer2/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer2\",\n  \"position\": {\n    \"x\": 430,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/bar2/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"bar2\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 250,\n    \"z\": 0,\n    \"width\": 600,\n    \"height\": 300\n  },\n  \"visual\": {\n    \"visualType\": \"clusteredColumnChart\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        },\n        \"Y\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Measure\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Sales\"\n                    }\n                  },\n                  \"Property\": \"Avg Order Value\"\n                }\n              },\n              \"queryRef\": \"Sales.Avg Order Value\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {\n      \"title\": [\n        {\n          \"properties\": {\n            \"text\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Average order value by region'\"\n                }\n              }\n            }\n          }\n        }\n      ],\n      \"general\": [\n        {\n          \"properties\": {\n            \"altText\": {\n              \"expr\": {\n                \"Literal\": {\n                  \"Value\": \"'Column chart of average order value by region'\"\n                }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/slicer0/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer0\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 10,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}", "SampleSales/SampleSales.Report/definition/pages/ReportSection2/visuals/slicer3/visual.json": "{\n  \"$schema\": \"https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json\",\n  \"name\": \"slicer3\",\n  \"position\": {\n    \"x\": 10,\n    \"y\": 120,\n    \"z\": 0,\n    \"width\": 200,\n    \"height\": 100\n  },\n  \"visual\": {\n    \"visualType\": \"slicer\",\n    \"query\": {\n      \"queryState\": {\n        \"Category\": {\n          \"projections\": [\n            {\n              \"field\": {\n                \"Column\": {\n                  \"Expression\": {\n                    \"SourceRef\": {\n                      \"Entity\": \"Customer\"\n                    }\n                  },\n                  \"Property\": \"Region\"\n                }\n              },\n              \"queryRef\": \"Customer.Region\"\n            }\n          ]\n        }\n      }\n    },\n    \"visualContainerObjects\": {}\n  }\n}"};
+const KEEP = /\.(tmdl|json|bim|pbir|pbip|pbism)$/i;
+const SKIP = /(^|\/)(\.pbi|StaticResources|\.git)\//;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const state = { result: null, area: "All", sev: new Set(["error", "warning", "info"]), isSample: false };
+const RING = { good: ["#40c057", "#1f9d55"], warn: ["#fcc419", "#e8590c"], crit: ["#ff8787", "#e03131"] };
+
+function setStatus(msg, isError) { const s = $("status"); s.textContent = msg; s.classList.toggle("error", !!isError); }
+const band = (v) => v >= 80 ? ["good", "Looking good"] : v >= 60 ? ["warn", "Needs work"] : ["crit", "Needs attention"];
+
+function audit(files, isSample) {
+  const res = PBIPAudit.run(files);
+  const paths = Object.keys(files);
+  const flat = paths.length > 0 && paths.every((p) => !p.includes("/"));
+  const zipTip = " Right-click your project folder, choose Send to > Compressed (zipped) folder, then use Choose .zip.";
+  if (!res.models.length && !res.reports.length) {
+    const seen = paths.length
+      ? ` Received ${paths.length} file${paths.length === 1 ? "" : "s"}, for example: ${paths.slice(0, 4).join(", ")}.`
+      : " No project files were received.";
+    setStatus("No .SemanticModel or .Report folder found." + seen + (flat ? " Your browser passed file names without their folders." : "") + zipTip, true);
+    return;
+  }
+  if (flat && !res.reports.length && paths.some((p) => /^(visual|page)\.json/.test(p))) {
+    res.errors.push("the report layout needs its folder structure, so only the model was checked." + zipTip);
+  }
+  state.result = res; state.isSample = isSample; state.area = "All";
+  const n = paths.length;
+  setStatus(isSample ? "Showing an example project. Drop your own to replace it."
+    : `Checked ${n} project file${n === 1 ? "" : "s"}.${res.errors.length ? " Note: " + res.errors.join("; ") : ""}`, res.errors.length > 0);
+  render();
+  if (!isSample) $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ringCard(label, v, overall) {
+  const [cls, verdict] = band(v);
+  const C = 2 * Math.PI * 52;
+  const id = `g${label}`;
+  const [a, b] = overall ? ["#ffd43b", "#f2552c"] : RING[cls];
+  return `<div class="ring-card${overall ? " overall" : ""} rise">
+    <div class="ring" role="img" aria-label="${esc(label)} score ${v} out of 100">
+      <svg viewBox="0 0 120 120"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>
+        <circle class="track" cx="60" cy="60" r="52"/>
+        <circle class="bar" cx="60" cy="60" r="52" stroke="url(#${id})" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}" data-target="${(C * (1 - v / 100)).toFixed(1)}"/></svg>
+      <div class="val"><b>${v}</b><span>out of 100</span></div>
+    </div>
+    <div class="ring-label">${esc(label)}</div>
+    <span class="verdict ${cls}">${verdict}</span>
+  </div>`;
+}
+
+function render() {
+  const r = state.result;
+  const counts = { warning: 0, info: 0, error: 0 };
+  r.findings.forEach((f) => counts[f.severity]++);
+  $("resHead").innerHTML = `<span class="kicker">${state.isSample ? '<span class="tag">Example project</span>' : "Your audit"}</span>
+    <h2 class="big">${esc(r.project)}</h2>`;
+  $("rings").innerHTML = Object.entries(r.scores).map(([k, v]) => ringCard(k, v, false)).join("") + ringCard("Overall", r.overall, true);
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll(".ring .bar").forEach((c) => c.setAttribute("stroke-dashoffset", c.dataset.target))));
+  $("inventory").innerHTML = r.models.map((m) => `<li><b>Model</b> ${esc(m.format)} · ${m.tables} tables · ${m.measures} measures · ${m.relationships} relationships</li>`)
+    .concat(r.reports.map((p) => `<li><b>Report</b> ${esc(p.format)} · ${p.pages} pages · ${p.visuals} visuals</li>`))
+    .concat([`<li><b>${r.findings.length}</b> findings · ${counts.warning} warnings · ${counts.info} info</li>`]).join("");
+
+  const areas = ["All"].concat(Object.keys(r.scores));
+  $("areaSeg").innerHTML = areas.map((a) => {
+    const n = a === "All" ? r.findings.length : r.findings.filter((f) => f.category === a).length;
+    return `<button type="button" data-area="${a}" aria-pressed="${state.area === a}">${a}<span class="n">${n}</span></button>`;
+  }).join("");
+  $("sevToggles").innerHTML = ["warning", "info"].map((s) =>
+    `<button class="toggle" type="button" data-sev="${s}" aria-pressed="${state.sev.has(s)}"><span class="dot ${s}"></span>${s === "warning" ? "Warnings" : "Info"} ${counts[s]}</button>`).join("");
+  renderFindings();
+  $("passed").innerHTML = r.passed.map((p) => `<li><span class="tick" aria-hidden="true">&#10003;</span><span>${esc(p.title)}</span><span class="rid" style="margin-left:auto">${p.ruleId}</span></li>`).join("")
+    || '<li>None yet.</li>';
+  $("findingsSection").hidden = false;
+  $("passedSection").hidden = false;
+  $("mdFallback").hidden = true;
+}
+
+function renderFindings() {
+  const r = state.result;
+  const list = r.findings.filter((f) => (state.area === "All" || f.category === state.area) && state.sev.has(f.severity));
+  if (!list.length) { $("findings").innerHTML = '<div class="empty">Nothing to fix here. Nicely done.</div>'; return; }
+  const groups = new Map();
+  for (const f of list) { if (!groups.has(f.ruleId)) groups.set(f.ruleId, []); groups.get(f.ruleId).push(f); }
+  let i = 0;
+  $("findings").innerHTML = [...groups].map(([id, fs]) => {
+    const f = fs[0];
+    return `<details class="rule"${i++ < 3 ? " open" : ""}>
+      <summary><span class="sev-badge ${f.severity}" title="${f.severity}">${id}</span>
+        <span class="rtitle">${esc(f.title)}<small>${f.category} · ${f.severity === "warning" ? "Warning" : "Info"}</small></span>
+        <span class="count">${fs.length}</span><span class="chev" aria-hidden="true"></span></summary>
+      <div class="rule-body">
+        <ul class="objs">${fs.map((x) => `<li><code>${esc(x.obj)}</code><span>${esc(x.detail)}</span></li>`).join("")}</ul>
+        <p class="fix"><b>How to fix.</b> ${esc(f.fix)}</p>
+      </div></details>`;
+  }).join("");
+}
+
+function toMarkdown() {
+  const r = state.result;
+  const lines = [`# PBIP Audit: ${r.project}`, "",
+    `**Scores:** ${Object.entries(r.scores).map(([k, v]) => `${k} ${v}/100`).join(", ")}, Overall ${r.overall}/100`, ""];
+  const groups = new Map();
+  for (const f of r.findings) { if (!groups.has(f.ruleId)) groups.set(f.ruleId, []); groups.get(f.ruleId).push(f); }
+  for (const [id, fs] of groups) {
+    lines.push(`## ${id} ${fs[0].title} (${fs[0].category}, ${fs[0].severity}, ${fs.length})`);
+    fs.forEach((f) => lines.push(`- \`${f.obj}\`: ${f.detail}`));
+    lines.push(`\n**How to fix:** ${fs[0].fix}`, "");
+  }
+  lines.push(`## Rules passed`, ...r.passed.map((p) => `- ${p.ruleId} ${p.title}`));
+  return lines.join("\n");
+}
+
+$("areaSeg").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-area]"); if (!b) return;
+  state.area = b.dataset.area;
+  document.querySelectorAll("#areaSeg button").forEach((c) => c.setAttribute("aria-pressed", c.dataset.area === state.area));
+  renderFindings();
+});
+$("sevToggles").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-sev]"); if (!b) return;
+  const s = b.dataset.sev;
+  if (state.sev.has(s)) state.sev.delete(s); else state.sev.add(s);
+  b.setAttribute("aria-pressed", state.sev.has(s));
+  renderFindings();
+});
+$("copyMd").addEventListener("click", () => {
+  const md = toMarkdown();
+  const fallback = () => { const t = $("mdFallback"); t.value = md; t.hidden = false; t.focus(); t.select(); };
+  try {
+    navigator.clipboard.writeText(md).then(() => { $("copyMd").textContent = "Copied"; setTimeout(() => ($("copyMd").textContent = "Copy as Markdown"), 1600); }, fallback);
+  } catch (e) { fallback(); }
+});
+
+// ---- File intake
+async function readFileList(list) {
+  const files = {};
+  for (const f of list) {
+    let p = (f.webkitRelativePath || f.name).replace(/\\/g, "/");
+    if (!KEEP.test(p) || SKIP.test(p) || f.size >= 30e6) continue;
+    if (files[p] !== undefined) { let n = 2; while (files[`${p}#${n}`] !== undefined) n++; p = `${p}#${n}`; }
+    files[p] = await f.text();
+  }
+  return files;
+}
+async function readZip(file) {
+  if (typeof JSZip === "undefined") throw new Error("the zip reader did not load. Choose the folder instead.");
+  const zip = await JSZip.loadAsync(file);
+  const files = {};
+  for (const entry of Object.values(zip.files)) {
+    const p = entry.name.replace(/\\/g, "/");
+    if (!entry.dir && KEEP.test(p) && !SKIP.test(p)) files[p] = await entry.async("string");
+  }
+  return files;
+}
+function readEntry(entry, prefix, out) {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      entry.file((f) => { out.push({ file: f, path: prefix + f.name }); resolve(); }, () => resolve());
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader(); const all = [];
+      const next = () => reader.readEntries(async (batch) => {
+        if (!batch.length) { for (const e of all) await readEntry(e, prefix + entry.name + "/", out); resolve(); }
+        else { all.push(...batch); next(); }
+      }, () => resolve());
+      next();
+    } else resolve();
+  });
+}
+async function handle(promise, label) {
+  setStatus(`Reading ${label}...`);
+  try { const files = await promise; audit(files, false); }
+  catch (e) { setStatus(`Could not read ${label}: ${e.message}`, true); }
+}
+
+$("pickFolder").addEventListener("click", () => $("folderInput").click());
+$("navLoad").addEventListener("click", () => $("folderInput").click());
+$("pickZip").addEventListener("click", () => $("zipInput").click());
+$("loadSample").addEventListener("click", () => { audit(SAMPLE, true); $("results").scrollIntoView({ behavior: "smooth" }); });
+$("folderInput").addEventListener("change", (e) => { if (e.target.files.length) handle(readFileList(e.target.files), "the folder"); e.target.value = ""; });
+$("zipInput").addEventListener("change", (e) => { if (e.target.files[0]) handle(readZip(e.target.files[0]), "the zip file"); e.target.value = ""; });
+
+const drop = $("drop");
+let depth = 0;
+drop.addEventListener("dragenter", (e) => { e.preventDefault(); depth++; drop.classList.add("over"); });
+drop.addEventListener("dragover", (e) => e.preventDefault());
+drop.addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; drop.classList.remove("over"); } });
+drop.addEventListener("drop", (e) => {
+  e.preventDefault(); depth = 0; drop.classList.remove("over");
+  const items = [...(e.dataTransfer.items || [])];
+  const entries = items.map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  const plain = [...(e.dataTransfer.files || [])];
+  if (plain.length === 1 && /\.zip$/i.test(plain[0].name) && !(entries[0] && entries[0].isDirectory)) {
+    handle(readZip(plain[0]), "the zip file"); return;
+  }
+  if (entries.length) {
+    handle((async () => {
+      const out = [];
+      for (const en of entries) await readEntry(en, "", out);
+      const files = {};
+      for (const { file, path } of out) if (KEEP.test(path) && !SKIP.test(path) && file.size < 30e6) files[path] = await file.text();
+      return files;
+    })(), "the folder");
+  }
+});
+
+audit(SAMPLE, true);
+</script>
+
+</body>
+</html>
